@@ -27,7 +27,15 @@ class histChart extends chartBase {
         } 
     }
 
-    makeChart = (data,container) => {
+    makeChart = (data,container,init=true) => {
+
+        //d3.select(container).remove('svg')
+        if (!init) {
+            
+            let target = d3.select(container);
+            target.select('svg').remove();
+
+        }
 
         const svg = d3.select(container).append('svg');
         svg.attr('width',this.width).attr('height',this.height);
@@ -45,6 +53,8 @@ class histChart extends chartBase {
 
         // Create array of bins
         var bins = this.bins(data,x);
+
+        //console.log(bins)
 
         // Create y func for this chart
         var y = this.y(bins);
@@ -68,19 +78,57 @@ class histChart extends chartBase {
         .call(d3.axisLeft(y).ticks(10,".0%"))
 
 
-    x = data => d3.scaleLinear()
-        .domain([d3.min(data),d3.max(data)+2])
-        //.domain(d3.extent(data)).nice()
-        .range([margin.left, this.width - margin.right])
+    xScaleDom = function(data) {
+        
+        if (d3.max(data) > 10) {
+            return [0,d3.max(data)]
+        } else {
+            return [0,10]
+        }
+    };    
 
-    y = () => d3.scaleLinear()
-        .domain([0,1])
-        .range([this.height - margin.bottom, margin.top])
+    x = (data) => d3.scaleLinear()
+        .domain(this.xScaleDom(data))
+        .range([margin.left, this.width - margin.right])
 
     bins = (data,x) => d3.bin()
         .domain(x.domain())
-        .thresholds(10)
+        //.thresholds(10)
+        .thresholds(() => {
+            
+            let max = d3.max(data)
+            
+            let limit = 20;
+
+            if (max <= 10) {
+                return 10;
+            } else if (max <= limit) {
+                return max;
+            } else {
+                return limit;
+            }
+        })
         (data)
+
+    yScaleDom = function(data) {
+
+        let maxArr = data.map(arr => arr.length)
+        let maxDec = d3.max(maxArr)/nSims;
+
+
+        if (maxDec < 0.5) {
+            return [0,maxDec*2]
+        } 
+
+        return [0,1];
+
+    }
+
+
+    y = (bins) => d3.scaleLinear()
+        //.domain([0,1])
+        .domain(this.yScaleDom(bins))
+        .range([this.height - margin.bottom, margin.top])
 
     bars = (g,bins,x,y) => g.attr('fill','steelblue')
         .selectAll('rect')

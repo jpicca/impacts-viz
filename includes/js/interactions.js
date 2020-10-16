@@ -1,6 +1,7 @@
 import initData from './charts.js';
 import { stateDict } from './helper.js';
 import { fillColor,fillColorDict } from './const.js'
+import histChart from './plotBase.js'
 
 export function interact() {
 
@@ -10,12 +11,15 @@ export function interact() {
         'level': 'nat',
         'selected': 'nat',
         'sims':[],
+        'selSims':[],
         'states':[],
         'cwas':[],
         'natQuantiles': {}
     }
 
-    // Load the sims into our exports dict 
+    // Load the sims from the initial data file into our exports dict 
+    // THis includes individual sim data on national scale
+    // and summary stats (quantiles) on states/cwas for map filling
     Promise.resolve(initData).then(data => {
 
         exports.vars.sims = data.sims;
@@ -64,11 +68,15 @@ export function interact() {
             let id = $(e.currentTarget).attr("id")
             this.vars.selected = id;
 
+            // Load new data file for clicked element
+            this.loadData(`./includes/data/followup/${id}_data.csv`);
+
             switch (type) {
                 case 'st':
                     
                     this.vars.level = 'st'
 
+                    // Switch the state menu to clicked state
                     $('#st-choice').val(id)
                     // d3.select('#state-choice').style('visibility','visible')
                     // d3.select('#cwa-choice').style('visibility','hidden') 
@@ -104,7 +112,7 @@ export function interact() {
                     // Nothing here for the time being, but if counties are added
                 }
 
-                console.log(this.vars)
+                // console.log(this.vars)
         })
 
         return this;
@@ -112,6 +120,7 @@ export function interact() {
 
     exports.menuChange = function(selection) {
         selection.on('change', () => {
+
             let val = selection.node().value
 
             switch (selection.attr('id')) {
@@ -130,6 +139,9 @@ export function interact() {
 
                         // Update the table values
                         this.updateTable('cwas')
+
+                        // Load new data file for whatever is the active CWA
+                        this.loadData(`./includes/data/followup/${$('#c-choice').val()}_data.csv`);
 
                         // Control what menu is shown
                         d3.select('#state-choice').style('display','none')
@@ -153,12 +165,15 @@ export function interact() {
 
                         }
 
-                    } else if (this.vars['level'] == 'st') {
+                    } else if ($('select#gran').val() == 'st') {
 
                         // Update the selected var and the table title
                         this.vars.selected = $('#st-choice').val()
                         d3.select('#cur-val-table').text(`State: ${$('#st-choice').val()}`)
-                        
+
+                        // Load new data file for current state
+                        this.loadData(`./includes/data/followup/${$('#st-choice').val()}_data.csv`);
+
                         // Update the table values
                         this.updateTable('states')
 
@@ -186,8 +201,27 @@ export function interact() {
 
                     } else {
 
+                        // Update table for national stats
+                        let statsDict = this.vars.natQuantiles;
+
+                        Object.keys(statsDict).forEach(key => {
+                            Object.keys(statsDict[key]).forEach(innerKey => {
+                    
+                                //console.log(`.t${key}.${innerKey}`)
+                    
+                                d3.select(`.t${key}.${innerKey}`).text((+statsDict[key][innerKey]).toFixed())
+                    
+                            })
+                        })
+
                         this.vars.selected = val;
                         d3.select('#cur-val-table').text(`National`)
+
+                        // Update thresh with nat sims
+                        this.updateThresh(this.vars.sims);
+
+                        // Update charts
+                        this.loadData('',true);
 
                         // Control what menu is shown
                         d3.select('#state-choice').style('display','none')
@@ -215,6 +249,12 @@ export function interact() {
 
                     this.vars.selected = val;
                     d3.select('#cur-val-table').text(`State: ${val}`)
+
+                    // Load new data file for updated menu
+                    this.loadData(`./includes/data/followup/${val}_data.csv`);
+
+                    // Update table
+                    this.updateTable('states')
                     
                     break;
 
@@ -223,15 +263,24 @@ export function interact() {
                     this.vars.selected = val;
                     d3.select('#cur-val-table').text(`CWA: ${val}`)
 
+                    // Load new data file for updated menu
+
+                    // Update table
+                    this.updateTable('cwas')
+
                     break;
 
                 case 'prod':
 
                     // Update context jumbo
-                    this.updateThresh(this.vars.sims);
+                    if ($('select#gran').val() == 'nat') {
+                        this.updateThresh(this.vars.sims);
+                    } else {
+                        this.updateThresh(this.vars.selSims)
+                    }
 
                     // Update map
-                    this.updateMap('impact')
+                    this.updateMap()
 
                     this.updateProduct(val);
 
@@ -310,7 +359,6 @@ export function interact() {
                     // If there's no entry for that state
                     catch(err) {
                         
-                        //console.log(err)
                         return '#fff'
                     }
                 })
@@ -322,7 +370,7 @@ export function interact() {
                         let abbrev = d.properties.CWA
                     
                         let filtered = exports.vars.cwas.filter(entry => entry.cwa == abbrev)
-                        //console.log(filtered)
+                        
                         
                         // Right now, the 2nd indexed position is the median... need
                         // to make this variable based on percentile dropdown
@@ -332,13 +380,109 @@ export function interact() {
                     // If there's no entry for that CWA
                     catch(err) {
                         
-                        //console.log(err)
                         return '#fff'
                     }
                 })
     }
 
+    exports.loadData = function(file='',nat=false) {
+
+        let containers = d3.selectAll('.chart');
+        containers.select('h4').remove();
+
+        if (nat) {
+
+            var h = [], m = [], pop = [], pow = [];
+
+            this.updateThresh(this.vars.sims);
+
+            this.vars.sims.forEach(entry => {
+                pop.push(entry[0])
+                h.push(entry[1])
+                m.push(entry[2])
+                pow.push(entry[3])
+            })
+
+            var newHosp = new histChart();
+            newHosp.makeChart(h,'#hosp-chart',false);
+
+            var newMob = new histChart();
+            newMob.makeChart(m,'#mob-chart',false);
+
+            var newPow = new histChart();
+            newPow.makeChart(pow,'#pow-chart',false);
+
+            return;
+
+        }
+
+        d3.csv(file).then(data => {
+
+            var h = [], m = [], pop = [], pow = [], simArr = [], simsArr = [];
+
+            // Process data
+            data.forEach(entry => {
+                h.push(+entry.hospitals)
+                m.push(+entry.mobilehomes)
+                pop.push(+entry.population)
+                pow.push(+entry.psubstations)
+
+                simArr = [+entry.population,+entry.hospitals,+entry.mobilehomes,+entry.psubstations];
+                simsArr.push(simArr);
+
+            })
+
+            // Add our simsArr to the exports vars
+            this.vars.selSims = simsArr;
+
+            // console.log('The 50th percentile of impacted pop is...')
+            // console.log(d3.quantile(pop,0.5))
+
+            // Update context-jumbo
+            // Testing
+            // console.log('Checking 50th percentile of this.vars.selSims at load data...')
+            // console.log(`${this.vars.selSims.filter(entry => entry[0] > 15872).length}`)
+
+            this.updateThresh(this.vars.selSims);
+            
+            var newHosp = new histChart();
+            newHosp.makeChart(h,'#hosp-chart',false);
+
+            var newMob = new histChart();
+            newMob.makeChart(m,'#mob-chart',false);
+
+            var newPow = new histChart();
+            newPow.makeChart(pow,'#pow-chart',false);
+
+        }).catch(err => {
+            console.log('No file!')
+
+            // Remove svg if it exists and add a banner about no tornadoes
+            containers.select('svg').remove();
+            containers.append('h4').text('No simulated tornadoes')
+
+            d3.select('#context-jumbo').text('No simulated tornadoes')
+
+            this.vars.selSims = [];
+
+        })
+
+    }
+
     exports.updateThresh = function(data) {
+
+        // console.log(data)
+
+        if (!data.length) { 
+
+            console.log('nuthin!')
+
+            d3.select('#context-jumbo').text('No simulated tornadoes');
+
+            return;
+
+        }
+
         let thresh = +$('#thresh').val()
         
         const arrayMapper = {
@@ -349,6 +493,8 @@ export function interact() {
         }
 
         let arrayIdx = arrayMapper[$('#prod').val()][0]
+
+        console.log(arrayIdx)
 
         let count = data.filter(entry => entry[arrayIdx] >= thresh).length
 
@@ -371,6 +517,8 @@ export function interact() {
             region = $('#c-choice').val() 
         }
 
+        console.log(`This is updateTable: ${region}`)
+
         const helperDict = {
             'population': 'pop',
             'hospitals': 'hosp',
@@ -389,7 +537,6 @@ export function interact() {
             Object.keys(filtered[0]).forEach(key => {
                 if ((key != 'state') && (key != 'cwa')) { 
 
-                    console.log('update!')
                     let dataArr = filtered[0][key][0]
 
                     percList.forEach((e,i) => {
@@ -414,8 +561,6 @@ export function interact() {
         // if ((this.vars.level == 'nat') && (val != 'tor')) {
         //     d3.selectAll('.st').attr('fill-opacity', 1)
         // }
-
-        console.log(val)
 
         // If showing impact map, update legend appropriately
         if ($('input[name="tordio"]:checked').val() == 'imp') {
@@ -497,7 +642,11 @@ export function interact() {
 
     // Random helpers
     $('#thresh-update').on('click', () => {
-        exports.updateThresh(exports.vars.sims);
+        if ($('select#gran').val() == 'nat') {
+            exports.updateThresh(exports.vars.sims);
+        } else {
+            exports.updateThresh(exports.vars.selSims);
+        }
     })
 
     $('input[name="tordio"]').on('change', () => {

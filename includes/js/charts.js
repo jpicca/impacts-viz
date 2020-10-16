@@ -33,6 +33,8 @@ export default d3.json('./includes/data/init/data.json').then(impacts => {
     var h = [], m = [], pop = [], pow = [];
     let initData = impacts;
 
+    // console.log(initData)
+
     impacts.sims.forEach(entry => {
         pop.push(entry[0])
         h.push(entry[1])
