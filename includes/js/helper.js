@@ -3,11 +3,11 @@
 export var stateDict = {};
 export var cwaDict = {};
 
-d3.json('./includes/jsons/states.json').then(data => {
+d3.json('./includes/jsons/states.json').then(function(data) {
 
     let dropdown = d3.select('#st-choice')
 
-    data.forEach(entry => {
+    data.forEach(function(entry) {
 
         stateDict[entry.name] = entry.abbreviation;
         
@@ -21,11 +21,11 @@ d3.json('./includes/jsons/states.json').then(data => {
     dropdown.property('value','OK');
 })
 
-d3.json('./includes/jsons/cwa.json').then(data => {
+d3.json('./includes/jsons/cwa.json').then(function(data) {
 
     let dropdown = d3.select('#c-choice')
 
-    data.forEach(entry => {
+    data.forEach(function(entry) {
 
         cwaDict[entry.name] = entry.abbreviation;
         

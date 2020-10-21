@@ -20,7 +20,7 @@ export function interact() {
     // Load the sims from the initial data file into our exports dict 
     // THis includes individual sim data on national scale
     // and summary stats (quantiles) on states/cwas for map filling
-    Promise.resolve(initData).then(data => {
+    Promise.resolve(initData).then(function(data) {
 
         exports.vars.sims = data.sims;
         exports.vars.states = data.states;
@@ -49,17 +49,17 @@ export function interact() {
 
         }
 
-        selection.on('mouseover', (e) => {
+        selection.on('mouseover', function(e) {
 
             //$(e.currentTarget).attr('fill-opacity', 0.5)
             $(e.currentTarget).attr('stroke-width', 2)
 
-        }).on('mouseout', (e) => {
+        }).on('mouseout', function(e) {
             
             // $(e.currentTarget).attr('fill-opacity', 0)
             $(e.currentTarget).attr('stroke-width', 0.5)
 
-        }).on('click', e => {
+        }).on('click', function(e) {
 
             // Change selection menu to proper level
             $("select#gran").val(type);
@@ -114,13 +114,13 @@ export function interact() {
                 }
 
                 // console.log(this.vars)
-        })
+        }.bind(this))
 
-        return this;
+        return this;    
     }
 
     exports.menuChange = function(selection) {
-        selection.on('change', () => {
+        selection.on('change', function() {
 
             let val = selection.node().value
 
@@ -128,11 +128,11 @@ export function interact() {
 
                 case 'gran':
 
-                    this.vars['level'] = val;
+                    // this.vars['level'] = val;
 
                     let isChecked = d3.select('#tordio').property('checked');
 
-                    if (this.vars['level'] == 'cwa') {
+                    if ($('select#gran').val() == 'cwa') {
 
                         // Update the selected var and the table title
                         // this.vars.selected = $('#c-choice').val()
@@ -205,8 +205,8 @@ export function interact() {
                         // Update table for national stats
                         let statsDict = this.vars.natQuantiles;
 
-                        Object.keys(statsDict).forEach(key => {
-                            Object.keys(statsDict[key]).forEach(innerKey => {
+                        Object.keys(statsDict).forEach(function(key) {
+                            Object.keys(statsDict[key]).forEach(function(innerKey) {
                     
                                 //console.log(`.t${key}.${innerKey}`)
                     
@@ -294,7 +294,7 @@ export function interact() {
 
             // console.log(this.vars)
 
-        })
+        }.bind(this))
 
         return this;
     }
@@ -347,11 +347,13 @@ export function interact() {
 
         //if (type == 'impact') {
             d3.selectAll('.st')
-                .attr('fill', d => {
+                .attr('fill', function(d) {
                     // .population[0][2] is currently the 90th percentile -- *** make sure to change!! ***
                     try {
                         let abbrev = stateDict[d.properties.name]
-                        let filtered = exports.vars.states.filter(entry => entry.state == abbrev)
+                        let filtered = exports.vars.states.filter(function(entry) {
+                            return entry.state == abbrev
+                        })
                         
                         // Right now, the 2nd indexed position is the median... need
                         // to make this variable based on percentile dropdown
@@ -366,12 +368,14 @@ export function interact() {
                 })
 
             d3.selectAll('.cwa')
-                .attr('fill', d => {
+                .attr('fill', function(d) {
                     // .population[0][2] is currently the 90th percentile -- *** make sure to change!! ***
                     try {
                         let abbrev = d.properties.CWA
                     
-                        let filtered = exports.vars.cwas.filter(entry => entry.cwa == abbrev)
+                        let filtered = exports.vars.cwas.filter(function(entry) {
+                            return entry.cwa == abbrev
+                        })
                         
                         
                         // Right now, the 2nd indexed position is the median... need
@@ -387,7 +391,7 @@ export function interact() {
                 })
     }
 
-    exports.loadData = function(file='',nat=false) {
+    exports.loadData = function(file=null,nat=false) {
 
         let containers = d3.selectAll('.chart');
         containers.select('h4').remove();
@@ -398,7 +402,7 @@ export function interact() {
 
             this.updateThresh(this.vars.sims);
 
-            this.vars.sims.forEach(entry => {
+            this.vars.sims.forEach(function(entry) {
                 pop.push(entry[0])
                 h.push(entry[1])
                 m.push(entry[2])
@@ -418,12 +422,12 @@ export function interact() {
 
         }
 
-        d3.csv(file).then(data => {
+        d3.csv(file).then(function(data) {
 
             var h = [], m = [], pop = [], pow = [], simArr = [], simsArr = [];
 
             // Process data
-            data.forEach(entry => {
+            data.forEach(function(entry) {
                 h.push(+entry.hospitals)
                 m.push(+entry.mobilehomes)
                 pop.push(+entry.population)
@@ -456,7 +460,7 @@ export function interact() {
             var newPow = new histChart();
             newPow.makeChart(pow,'#pow-chart',false);
 
-        }).catch(err => {
+        }.bind(this)).catch(function(err) {
             console.log('No file!')
 
             // Remove svg if it exists and add a banner about no tornadoes
@@ -467,7 +471,7 @@ export function interact() {
 
             this.vars.selSims = [];
 
-        })
+        }.bind(this))
 
     }
 
@@ -498,7 +502,7 @@ export function interact() {
 
         // console.log(arrayIdx)
 
-        let count = data.filter(entry => entry[arrayIdx] >= thresh).length
+        let count = data.filter(function(entry) { return entry[arrayIdx] >= thresh }).length
 
         // Update text on page
         d3.select('#context-jumbo')
@@ -531,17 +535,17 @@ export function interact() {
         const percList = ['min','ten','med','ninety','max'];
 
         // Get data from var holder
-        let filtered = this.vars[level].filter(entry => entry[`${level.slice(0,-1)}`] == region)
+        let filtered = this.vars[level].filter(function(entry) {return entry[`${level.slice(0,-1)}`] == region })
         
         
         try {
 
-            Object.keys(filtered[0]).forEach(key => {
+            Object.keys(filtered[0]).forEach(function(key) {
                 if ((key != 'state') && (key != 'cwa')) { 
 
                     let dataArr = filtered[0][key][0]
 
-                    percList.forEach((e,i) => {
+                    percList.forEach(function(e,i) {
 
                         d3.select(`.t${helperDict[key]}.${e}`).text((dataArr[i]).toFixed())
                     })
@@ -643,15 +647,15 @@ export function interact() {
     }
 
     // Random helpers
-    $('#thresh-update').on('click', () => {
+    $('#thresh-update').on('click', function() {
         if ($('select#gran').val() == 'nat') {
-            exports.updateThresh(exports.vars.sims);
+            this.updateThresh(this.vars.sims);
         } else {
-            exports.updateThresh(exports.vars.selSims);
+            this.updateThresh(this.vars.selSims);
         }
-    })
+    }.bind(exports))
 
-    $('input[name="tordio"]').on('change', () => {
+    $('input[name="tordio"]').on('change', function() {
 
         // let showing = exports.vars.level;
 

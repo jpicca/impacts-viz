@@ -36,7 +36,7 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
     // Need to reverse the order of the lat/lon pairs...
     // The way they're processed in python, they're output in reverse order that
     // d3 needs them to properly render the geojsons
-    outlooks.features.map(arr => {
+    outlooks.features.map(function(arr) {
         return arr.geometry.coordinates[0].reverse()
     })
 

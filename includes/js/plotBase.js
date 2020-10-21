@@ -24,10 +24,10 @@ class histChart extends chartBase {
         this.stats = {
             '0.5': '',
             '0.9': ''
-        } 
-    }
+        }
+    
 
-    makeChart = (data,container,init=true) => {
+    this.makeChart = function(data,container,init=true) {
 
         //d3.select(container).remove('svg')
         if (!init) {
@@ -87,46 +87,53 @@ class histChart extends chartBase {
 
     }
 
-    xAxis = (g,x) => g.attr("transform", `translate(0,${this.height - margin.bottom})`)
-        .call(d3.axisBottom(x))
+    this.xAxis = function(g,xScale) { 
+        g.attr("transform", `translate(0,${this.height - margin.bottom})`)
+            .call(d3.axisBottom(xScale))
+    }
 
-    yAxis = (g,y) => g.attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y).ticks(10,".0%"))
+    this.yAxis = function(g,y) { 
+        g.attr("transform", `translate(${margin.left},0)`)
+            .call(d3.axisLeft(y).ticks(10,".0%"))
+    }
 
 
-    xScaleDom = function(data) {
+    this.xScaleDom = function(data) {
         
         if (d3.max(data) > 10) {
             return [0,d3.max(data)]
         } else {
             return [0,10]
         }
-    };    
+    };
 
-    x = (data) => d3.scaleLinear()
-        .domain(this.xScaleDom(data))
-        .range([margin.left, this.width - margin.right])
+    this.x = function(data) {
+        return d3.scaleLinear().domain(this.xScaleDom(data))
+                    .range([margin.left, this.width - margin.right])
+    }
 
-    bins = (data,x) => d3.bin()
-        .domain(x.domain())
-        //.thresholds(10)
-        .thresholds(() => {
-            
-            let max = d3.max(data)
-            
-            let limit = 20;
+    this.bins = function(data,x) { 
+        return d3.bin()
+                .domain(x.domain())
+                //.thresholds(10)
+                .thresholds(() => {
+                    
+                    let max = d3.max(data)
+                    
+                    let limit = 20;
 
-            if (max <= 10) {
-                return 10;
-            } else if (max <= limit) {
-                return max;
-            } else {
-                return limit;
-            }
-        })
-        (data)
+                    if (max <= 10) {
+                        return 10;
+                    } else if (max <= limit) {
+                        return max;
+                    } else {
+                        return limit;
+                    }
+                })
+                (data)
+    }
 
-    yScaleDom = function(data) {
+    this.yScaleDom = function(data) {
 
         let maxArr = data.map(arr => arr.length)
         let maxDec = d3.max(maxArr)/nSims;
@@ -141,12 +148,12 @@ class histChart extends chartBase {
     }
 
 
-    y = (bins) => d3.scaleLinear()
+    this.y = (bins) => d3.scaleLinear()
         //.domain([0,1])
         .domain(this.yScaleDom(bins))
         .range([this.height - margin.bottom, margin.top])
 
-    bars = (g,bins,x,y) => g.attr('fill','steelblue')
+    this.bars = (g,bins,x,y) => g.attr('fill','steelblue')
         .selectAll('rect')
         .data(bins)
         .join('rect')
@@ -167,6 +174,7 @@ class histChart extends chartBase {
     //     //     .attr("transform", `translate(${this.width/4},${2*margin.top})`)
 
     // }
+    }
 
 }
 

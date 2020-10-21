@@ -29,13 +29,13 @@ import { quantileCalc } from './stats.js'
 // })
 
 // New file format to read in sims + state/cwa starter info (10/med/90 + climo)
-export default d3.json('./includes/data/init/data.json').then(impacts => {
+export default d3.json('./includes/data/init/data.json').then(function(impacts) {
     var h = [], m = [], pop = [], pow = [];
     let initData = impacts;
 
     // console.log(initData)
 
-    impacts.sims.forEach(entry => {
+    impacts.sims.forEach(function(entry) {
         pop.push(entry[0])
         h.push(entry[1])
         m.push(entry[2])
@@ -60,8 +60,8 @@ export default d3.json('./includes/data/init/data.json').then(impacts => {
     // we have to re-populate the table with national stats
     initData['natQuantiles'] = statsDict;
 
-    Object.keys(statsDict).forEach(key => {
-        Object.keys(statsDict[key]).forEach(innerKey => {
+    Object.keys(statsDict).forEach(function(key) {
+        Object.keys(statsDict[key]).forEach(function(innerKey) {
 
             //console.log(`.t${key}.${innerKey}`)
 
