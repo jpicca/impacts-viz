@@ -66,8 +66,24 @@ class histChart extends chartBase {
         this.bars(svg.select('.bars'),bins,x,y);
 
         // Update percentiles & add text
-        this.calcs(data);
-        this.statsText(svg.select('.stats'),container)
+        // this.calcs(data);
+        // this.statsText(svg.select('.stats'),container)
+
+        // Try to create pop-ups for the rects
+        // data-toggle="tooltip" title="Climo goes here">
+        d3.selectAll('rect')
+            .attr('data-toggle','tooltip')
+            .attr('title', d => {
+                // If the bar only represents one value, just show that value
+                // Otherwise, show the range it represents
+                if (d.x1 - d.x0 == 1) { 
+                    return `${d.x0}: ${(d.length*100/(nSims)).toFixed(1)}%`;
+                } else {
+                    return `${d.x0}-${d.x1-1}: ${(d.length*100/(nSims)).toFixed(1)}%`;
+                }
+            })
+
+        $('rect').tooltip();
 
     }
 
@@ -139,18 +155,18 @@ class histChart extends chartBase {
         .attr('y', d => y(d.length/nSims))
         .attr('height', d => y(0) - y(d.length/nSims));
 
-    calcs = (data) => {
-        this.stats['0.5'] = d3.quantile(data,0.5);
-        this.stats['0.9'] = d3.quantile(data,0.9);
-    }
+    // calcs = (data) => {
+    //     this.stats['0.5'] = d3.quantile(data,0.5);
+    //     this.stats['0.9'] = d3.quantile(data,0.9);
+    // }
 
-    statsText = (g,container) => {
+    // statsText = (g,container) => {
 
-        // g.append('text')
-        //     .text(`90th Percentile: ${this.stats['0.9']} ${textKey[container]}`)
-        //     .attr("transform", `translate(${this.width/4},${2*margin.top})`)
+    //     // g.append('text')
+    //     //     .text(`90th Percentile: ${this.stats['0.9']} ${textKey[container]}`)
+    //     //     .attr("transform", `translate(${this.width/4},${2*margin.top})`)
 
-    }
+    // }
 
 }
 

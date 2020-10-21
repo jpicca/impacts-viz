@@ -8,8 +8,8 @@ export function interact() {
     var exports = {};
 
     exports.vars = {
-        'level': 'nat',
-        'selected': 'nat',
+        // 'level': 'nat',
+        // 'selected': 'nat',
         'sims':[],
         'selSims':[],
         'states':[],
@@ -61,20 +61,21 @@ export function interact() {
 
         }).on('click', e => {
 
-            // Change selection menu
+            // Change selection menu to proper level
             $("select#gran").val(type);
             
             // Get clicked element ID
             let id = $(e.currentTarget).attr("id")
-            this.vars.selected = id;
+            // this.vars.selected = id;
 
             // Load new data file for clicked element
+            // Load data also runs the threshold div updater and chart updater
             this.loadData(`./includes/data/followup/${id}_data.csv`);
 
             switch (type) {
                 case 'st':
                     
-                    this.vars.level = 'st'
+                    // this.vars.level = 'st'
 
                     // Switch the state menu to clicked state
                     $('#st-choice').val(id)
@@ -93,7 +94,7 @@ export function interact() {
 
                 case 'cwa':
 
-                    this.vars.level = 'cwa'
+                    // this.vars.level = 'cwa'
                     
                     $('#c-choice').val(id)
                     // d3.select('#state-choice').style('visibility','hidden')
@@ -134,7 +135,7 @@ export function interact() {
                     if (this.vars['level'] == 'cwa') {
 
                         // Update the selected var and the table title
-                        this.vars.selected = $('#c-choice').val()
+                        // this.vars.selected = $('#c-choice').val()
                         d3.select('#cur-val-table').text(`CWA: ${$('#c-choice').val()}`)
 
                         // Update the table values
@@ -168,7 +169,7 @@ export function interact() {
                     } else if ($('select#gran').val() == 'st') {
 
                         // Update the selected var and the table title
-                        this.vars.selected = $('#st-choice').val()
+                        // this.vars.selected = $('#st-choice').val()
                         d3.select('#cur-val-table').text(`State: ${$('#st-choice').val()}`)
 
                         // Load new data file for current state
@@ -214,14 +215,14 @@ export function interact() {
                             })
                         })
 
-                        this.vars.selected = val;
+                        // this.vars.selected = val;
                         d3.select('#cur-val-table').text(`National`)
 
                         // Update thresh with nat sims
                         this.updateThresh(this.vars.sims);
 
                         // Update charts
-                        this.loadData('',true);
+                        this.loadData(null,true);
 
                         // Control what menu is shown
                         d3.select('#state-choice').style('display','none')
@@ -247,7 +248,7 @@ export function interact() {
 
                 case 'st-choice':
 
-                    this.vars.selected = val;
+                    // this.vars.selected = val;
                     d3.select('#cur-val-table').text(`State: ${val}`)
 
                     // Load new data file for updated menu
@@ -260,10 +261,11 @@ export function interact() {
 
                 case 'c-choice':
 
-                    this.vars.selected = val;
+                    // this.vars.selected = val;
                     d3.select('#cur-val-table').text(`CWA: ${val}`)
 
                     // Load new data file for updated menu
+                    this.loadData(`./includes/data/followup/${val}_data.csv`);
 
                     // Update table
                     this.updateTable('cwas')
@@ -290,7 +292,7 @@ export function interact() {
                     this.updateMap()
             }
 
-            console.log(this.vars)
+            // console.log(this.vars)
 
         })
 
@@ -494,7 +496,7 @@ export function interact() {
 
         let arrayIdx = arrayMapper[$('#prod').val()][0]
 
-        console.log(arrayIdx)
+        // console.log(arrayIdx)
 
         let count = data.filter(entry => entry[arrayIdx] >= thresh).length
 
@@ -651,7 +653,9 @@ export function interact() {
 
     $('input[name="tordio"]').on('change', () => {
 
-        let showing = exports.vars.level;
+        // let showing = exports.vars.level;
+
+        let showing = $('select#gran').val();
 
         // Hide all legends
         d3.selectAll('.legend').attr('visibility','hidden');
@@ -708,6 +712,11 @@ export function interact() {
 
             //d3.select('')
         }
+    })
+
+    // Enable tooltips
+    $(function () {
+        $('[data-toggle="tooltip"]').tooltip()
     })
 
 
