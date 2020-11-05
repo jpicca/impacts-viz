@@ -13,7 +13,7 @@ export const colors = {
 export const textKey = {
     '#hosp-chart': 'Hospitals',
     '#mob-chart': 'Mobile Homes',
-    '#pow-chart': 'Power Plants'
+    '#pow-chart': 'Power Substations'
 }
 
 export const height = $(window).height();
@@ -25,7 +25,7 @@ export const nSims = 10000;
 export const fillColor = d3.scaleSequential([0,75], d3.interpolateReds).nice();
 
 export const fillColorDict = {
-    'pop': d3.scaleSequential([1,10000], d3.interpolateReds).nice(),
+    'pop': d3.scaleSequential([1,50000], d3.interpolateReds).nice(),
     'hosp': d3.scaleSequential([1,5], d3.interpolateReds).nice(),
     'pow': d3.scaleSequential([1,10], d3.interpolateReds).nice(),
     'mob': d3.scaleSequential([1,100], d3.interpolateReds).nice()

@@ -8,8 +8,8 @@ var margin = {top: 10, right: 20, bottom: 40, left: 40};
 class chartBase {
     // Create instance with variables
     constructor() {
-      this.width = width/4 //- margin.left - margin.right;
-      this.height = height/4 //- margin.top - margin.bottom;
+      this.width = width //- margin.left - margin.right;
+      this.height = height //- margin.top - margin.bottom;
       //this.ylabel = "";
     }
   
@@ -35,6 +35,16 @@ class histChart extends chartBase {
             let target = d3.select(container);
             target.select('svg').remove();
 
+        }
+
+        if (this.width >= 992) {
+            this.width = this.width/4;
+        }
+
+        if (this.height >= 558) {
+            this.height = this.height/4;
+        } else {
+            this.height = this.height/2;
         }
 
         const svg = d3.select(container).append('svg');
@@ -89,7 +99,7 @@ class histChart extends chartBase {
 
     this.xAxis = function(g,xScale) { 
         g.attr("transform", `translate(0,${this.height - margin.bottom})`)
-            .call(d3.axisBottom(xScale))
+            .call(d3.axisBottom(xScale).tickFormat(d3.format("~s")))
     }
 
     this.yAxis = function(g,y) { 

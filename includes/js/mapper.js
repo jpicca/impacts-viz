@@ -6,7 +6,7 @@ import { stateDict } from './helper.js'
 import initData from './charts.js'
 
 Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
-            d3.json('./includes/geo/test.geojson'),
+            d3.json('./includes/geo/outlook.geojson'),
             d3.json('./includes/geo/cwa.json'),
             initData]).then(function(files) {
 
@@ -14,6 +14,17 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
     var outlooks = files[1];
     var cwa = files[2];
     var starterData = files[3];
+    var mapWidthScaler = 1;
+    var mapHeightScaler = 1;
+
+    // Check size of window
+    if (width >= 992) {
+        mapWidthScaler = 2;
+    } 
+
+    if (height >= 558) {
+        mapHeightScaler = 2;
+    } 
 
     const dims = {
         'width': width,
@@ -21,16 +32,16 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
     };
 
     var projection = d3.geoAlbersUsa()
-        .scale(dims.width/2)
-        .translate([dims.width/4,dims.height/4]);
+        .scale(dims.width/mapWidthScaler)
+        .translate([dims.width/(mapWidthScaler*2),dims.height/(mapHeightScaler*2)]);
 
     var path = d3.geoPath().projection(projection);
 
     var svg = d3.select('#map-holder')
                 .append('svg')
                 //.attr('viewBox', `0 0 ${dims.width} ${dims.height/2}`)
-                .attr('height',dims.height/2)
-                .attr('width',dims.width/2);
+                .attr('height',dims.height/mapHeightScaler)
+                .attr('width',dims.width/mapWidthScaler);
 
 
     // Need to reverse the order of the lat/lon pairs...
@@ -57,6 +68,15 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
             return colors[d.properties.probability];
         })
 
+    let svgTitle = d3.select('svg')
+                        .append('g')
+
+    svgTitle.append('text')
+            .classed('title-text', true)
+            .attr('text-anchor','middle')
+            .attr('transform',`translate(${dims.width*0.25},40)`)
+            .text('SPC Tornado Probabilities')
+
     let legendG = d3.select('svg')
         .append('g');
 
@@ -71,7 +91,7 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
         .attr('height',20)
         .attr('transform', (d,i) => 
             {
-                return `translate(${i*30 + 40},${dims.height/2 - 40})`
+                return `translate(${i*30 + 40},${dims.height/mapHeightScaler - 40})`
             })
         .attr('fill', d => colors[d])
         .attr('stroke','#000')
@@ -85,10 +105,38 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
         .text(d => `${d}%`)
         .attr('transform', (d,i) => 
             {
-                return `translate(${i*30 + 40},${dims.height/2 - 40})`
+                return `translate(${i*30 + 40},${dims.height/mapHeightScaler - 40})`
             })
         .attr('fill','#000')
         .attr('font-size','0.6rem')
+
+    legendG.selectAll('.fill-legend')
+        .data([...Array(100).keys()])
+        .join('rect')
+        .classed('fill-legend',true)
+        .attr('transform', (d,i) => 
+            {
+                return `translate(${i*2 + 40},${dims.height/mapHeightScaler - 40})`
+            })
+        .attr('width',2)
+        .attr('height',20)
+        .attr('fill', d => d3.scaleSequential([1,100], d3.interpolateReds).nice()(d))
+        .attr('visibility','hidden')
+
+    legendG.selectAll('.fill-legend-text')
+        .data([0,5])
+        .join('text')
+        .classed('fill-legend-text', true)
+        .classed('fill-legend', true)
+        .attr('text-anchor','middle')
+        .text(d => d)
+        .attr('transform', (d,i) => 
+            {
+                return `translate(${i*200 + 40},${dims.height/mapHeightScaler - 10})`
+            })
+        .attr('fill','#000')
+        .attr('font-size','0.6rem')
+        .attr('visibility','hidden')
 
     let statesG = d3.select('svg')
                     .append('g')
@@ -105,7 +153,13 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
                     let abbrev = stateDict[d.properties.name]
                     let filtered = starterData.states.filter(entry => entry.state == abbrev)
                     
+                    // Grab 0 index of hospitals for array of hospitals impacted
+                    // Then grab 2 index to get the median value
                     let testData = filtered[0].hospitals[0][2]
+
+                    if (testData == 0) {
+                        return '#fff'
+                    }
 
                     return fillColorDict['hosp'](testData)
                 }
@@ -118,18 +172,6 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
             .classed('st',true)
             //.attr('id', d => { return d.properties.name.replace(/\s/g, '') })
             .attr('id', d => { return stateDict[d.properties.name]})
-
-    // let countiesG = d3.select('svg')
-    //                     .append('g')
-
-    // countiesG.selectAll('.co')
-    //         .data(topojson.feature(us,us.objects.counties).features)
-    //         .join('path')
-    //         .attr('d',path)
-    //         .attr('stroke-width',0.5)
-    //         .attr('stroke','#aaa')
-    //         .attr('fill','none')
-    //         .classed('co',true)
 
     let warnAreasG = d3.select('svg')
                     .append('g')
@@ -158,7 +200,9 @@ Promise.all([d3.json('./includes/geo/counties-10m-edit.json'),
             //.attr('fill','#aaa')
             .attr('fill-opacity',0)
             .classed('cwa',true)
-            .attr('id', d => { return d.properties.CWA })
+            .attr('id', d => d.properties.CWA )
+            .attr('data-toggle','tooltip')
+            .attr('title', d => d.properties.CWA)
 
     
 

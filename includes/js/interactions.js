@@ -3,6 +3,8 @@ import { stateDict } from './helper.js';
 import { fillColor,fillColorDict } from './const.js'
 import histChart from './plotBase.js'
 
+console.log(initData)
+
 export function interact() {
 
     var exports = {};
@@ -20,7 +22,7 @@ export function interact() {
     // Load the sims from the initial data file into our exports dict 
     // THis includes individual sim data on national scale
     // and summary stats (quantiles) on states/cwas for map filling
-    Promise.resolve(initData).then(function(data) {
+    Promise.resolve(initData).then(data => {
 
         exports.vars.sims = data.sims;
         exports.vars.states = data.states;
@@ -113,9 +115,8 @@ export function interact() {
                     // Nothing here for the time being, but if counties are added
                 }
 
-                // console.log(this.vars)
         }.bind(this))
-
+        
         return this;    
     }
 
@@ -288,8 +289,9 @@ export function interact() {
 
                 case 'perc':
 
-                    //console.log(val);
                     this.updateMap()
+
+                    
             }
 
             // console.log(this.vars)
@@ -358,6 +360,9 @@ export function interact() {
                         // Right now, the 2nd indexed position is the median... need
                         // to make this variable based on percentile dropdown
                         let testData = filtered[0][helper[$('#prod').val()]][0][indexer[$('#perc').val()]]
+                        
+                        if (testData == 0) { return '#fff' }
+                        
                         return fillColorDict[$('#prod').val()](testData)
                     }
                     // If there's no entry for that state
@@ -381,6 +386,9 @@ export function interact() {
                         // Right now, the 2nd indexed position is the median... need
                         // to make this variable based on percentile dropdown
                         let testData = filtered[0][helper[$('#prod').val()]][0][indexer[$('#perc').val()]]
+                        
+                        if (testData == 0) { return '#fff' }
+                        
                         return fillColorDict[$('#prod').val()](testData)
                     }
                     // If there's no entry for that CWA
@@ -389,6 +397,11 @@ export function interact() {
                         return '#fff'
                     }
                 })
+
+            // Update title
+            if (d3.select('#impadio').property('checked')) {
+                updateTitle();
+            }
     }
 
     exports.loadData = function(file=null,nat=false) {
@@ -495,7 +508,7 @@ export function interact() {
             'pop': [0,'people'],
             'hosp': [1,'hospital(s)'],
             'mob': [2,'mobile home(s)'],
-            'pow': [3,'power plant(s)']
+            'pow': [3,'power substation(s)']
         }
 
         let arrayIdx = arrayMapper[$('#prod').val()][0]
@@ -543,14 +556,51 @@ export function interact() {
             Object.keys(filtered[0]).forEach(function(key) {
                 if ((key != 'state') && (key != 'cwa')) { 
 
-                    let dataArr = filtered[0][key][0]
+                    let valArr = filtered[0][key][0]
+                    let climoArr = filtered[0][key][1]
+
+                    //console.log(climoArr)
 
                     percList.forEach(function(e,i) {
 
-                        d3.select(`.t${helperDict[key]}.${e}`).text((dataArr[i]).toFixed())
+                        let cell = d3.select(`.t${helperDict[key]}.${e}`);
+                        let val = +(valArr[i]).toFixed()
+                        let climo = +climoArr[i]
+                        let text;
+
+                        cell.text(val)
+
+                        cell.attr('data-original-title',() => {
+                            if (climo == 0) { 
+                                text = 'Climo: 0'
+                            } else {
+                                text = `Climo: ${climo.toFixed()} // Today's value is ${(val/climo).toFixed(1)}x normal for this date.`
+                            }
+
+                            return text;
+                        })
+                        //console.log(`Perc: ${e}, Impact: ${key} `)
+                        
                     })
 
                 }
+
+                
+                // let val = +statsDict[key][innerKey].toFixed()
+
+                // cell.text(val)
+                // cell.attr('title',() => {
+
+                //     let climo = +initData['natClimo'][key][innerKey];
+                //     let text;
+                //     if (climo == 0) { 
+                //         text = 'Climo: 0'
+                //     } else {
+                //         text = `Climo: ${climo.toFixed()} // Today's value is ${(val/climo).toFixed(1)}x normal for this date.`
+                //     }
+
+                //     return text;
+                // })
             })
 
         } catch(err) {
@@ -563,11 +613,6 @@ export function interact() {
 
     exports.updateProduct = function(val) {
 
-        // Show states if an impact option is chosen and gran is set to nat
-        // if ((this.vars.level == 'nat') && (val != 'tor')) {
-        //     d3.selectAll('.st').attr('fill-opacity', 1)
-        // }
-
         // If showing impact map, update legend appropriately
         if ($('input[name="tordio"]:checked').val() == 'imp') {
             // Hide all legends
@@ -575,9 +620,22 @@ export function interact() {
                 .attr('visibility','hidden');
 
             // Show appropriate legend
-            d3.selectAll(`.${val}-leg`)
+            d3.selectAll(`.fill-legend`)
                 .attr('visibility','visible');
+
         }
+
+        // Update legend text
+        let rangeHelper = {
+            'pop': [0,50000],
+            'hosp': [0,5],
+            'pow': [0,10],
+            'mob': [0,100]
+        }
+
+        d3.selectAll('.fill-legend-text')
+            .data(rangeHelper[$('#prod').val()])
+            .text(d => d);
 
         d3.selectAll('.cell')
             .style('background-color', '#fff')
@@ -655,6 +713,14 @@ export function interact() {
         }
     }.bind(exports))
 
+    function updateTitle() {
+        let title = d3.select('.title-text')
+                        
+        let text = `${$('#prod option:selected').text()}: ${$('#perc option:selected').text()}`
+
+        title.text(text)
+    }
+
     $('input[name="tordio"]').on('change', function() {
 
         // let showing = exports.vars.level;
@@ -662,12 +728,16 @@ export function interact() {
         let showing = $('select#gran').val();
 
         // Hide all legends
-        d3.selectAll('.legend').attr('visibility','hidden');
+        // d3.selectAll('.legend').attr('visibility','hidden');
 
         if (d3.select('#tordio').property('checked')) { 
 
+            // Update title
+            d3.select('.title-text').text('SPC Tornado Probabilities')
+
             // Show tor prob legend
             d3.selectAll('.tor-prob-leg').attr('visibility','visible');
+            d3.selectAll('.fill-legend').attr('visibility','hidden');
 
             if (showing == 'nat' || showing == 'st') { 
                 d3.selectAll(`.cwa`)
@@ -692,6 +762,12 @@ export function interact() {
             d3.select('#map-fill').style('display','none')
 
         } else {
+
+            // Update title
+            updateTitle();
+
+            d3.selectAll('.fill-legend').attr('visibility','visible');
+            d3.selectAll('.tor-prob-leg').attr('visibility','hidden');
             
             if (showing == 'nat' || showing == 'st') { 
                 
